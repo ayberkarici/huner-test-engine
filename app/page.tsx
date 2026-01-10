@@ -540,7 +540,7 @@ export default function TestWorkbench() {
   const [telemetryOpen, setTelemetryOpen] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<FeedbackState>({});
-  const [isMockMode, setIsMockMode] = useState<boolean>(true); // Toggle between mock and real API
+  const [isMockMode, setIsMockMode] = useState<boolean>(false); // Default to Live API (https://sut-engine.hunerai.com)
   const [apiResponse, setApiResponse] = useState<AnalysisResponse | null>(null); // Store raw API response
 
   // Add log entry
