@@ -41,7 +41,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, estimateTokens, formatLatency, formatTimestamp } from "@/lib/utils";
 import { sampleMedicalReport, mockExtractedData, mockSUTEvaluation, SUT_MANAGEMENT_URL } from "@/lib/mock-data";
-import { analyzeHealthReport, prepareHealthReportRequest, type AnalysisResponse } from "@/lib/api";
+import { processReport, type AnalysisResponse } from "@/lib/api";
 
 // Types
 interface ExtractedData {
@@ -626,7 +626,7 @@ export default function TestWorkbench() {
 
     // Log request
     addLog("request", {
-      endpoint: isMockMode ? "/api/mock" : "https://sut-engine.hunerai.com/analyze",
+      endpoint: isMockMode ? "/api/mock" : "/api/jsonize + /api/analyze",
       method: "POST",
       body: { text: inputText.slice(0, 200) + "..." },
       inputTokens,
@@ -642,19 +642,20 @@ export default function TestWorkbench() {
         // Use mock data
         result = await mockFetch(inputText);
       } else {
-        // Use real API
-        // First, prepare the request from extracted mock data (in real scenario, this would come from extraction API)
-        const healthReportRequest = prepareHealthReportRequest(mockExtractedData);
+        // Use real API with two-step flow
+        // Step 1: /jsonize - Convert plain text to structured JSON
+        // Step 2: /analyze - Analyze structured JSON for SUT compliance
+        const { jsonizeResponse, analysisResponse } = await processReport(inputText);
+        setApiResponse(analysisResponse);
         
-        // Call the analyze API
-        const response = await analyzeHealthReport(healthReportRequest);
-        setApiResponse(response);
+        // Use the extracted data from jsonize response
+        const extractedFromApi = jsonizeResponse.data as unknown as ExtractedData;
         
-        // Parse the response
-        const sutEval = parseApiResponse(response);
+        // Parse the SUT evaluation from analyze response
+        const sutEval = parseApiResponse(analysisResponse);
         
         result = {
-          extractedData: mockExtractedData as ExtractedData,
+          extractedData: extractedFromApi,
           sutEvaluation: sutEval,
         };
       }

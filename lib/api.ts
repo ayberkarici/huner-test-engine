@@ -1,5 +1,5 @@
 // API Configuration for Hüner AI SUT Engine
-// API Documentation: https://sut-engine.hunerai.com/
+// API Documentation: https://sut-engine.hunerai.com/docs
 // Note: Browser requests go through local proxy to avoid CORS issues
 
 export const API_CONFIG = {
@@ -8,7 +8,8 @@ export const API_CONFIG = {
   // Direct API URL (for server-side use)
   directUrl: "https://sut-engine.hunerai.com",
   endpoints: {
-    analyze: "/analyze",
+    jsonize: "/jsonize",  // Convert plain text to structured JSON
+    analyze: "/analyze",  // Analyze structured JSON for SUT compliance
     health: "/health",
   },
 };
@@ -98,10 +99,22 @@ export interface HealthReportRequest {
   notes: Notes;
 }
 
+// Jsonize endpoint types
+export interface JsonizeRequest {
+  text: string;
+}
+
+export interface JsonizeResponse {
+  request_id: string;
+  message: string;
+  data: HealthReportRequest;
+}
+
+// Analyze endpoint types  
 export interface AnalysisResponse {
   request_id: string;
   message: string;
-  data: string;
+  data: string; // JSON string containing SUT evaluation
 }
 
 export interface ValidationError {
@@ -124,6 +137,35 @@ export async function checkHealth(): Promise<{ status: string }> {
   return response.json();
 }
 
+/**
+ * Step 1: Convert plain text medical report to structured JSON
+ * POST /jsonize
+ */
+export async function jsonizeReport(text: string): Promise<JsonizeResponse> {
+  const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.jsonize}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 422) {
+      const errorData: HTTPValidationError = await response.json();
+      throw new Error(`Validation Error: ${errorData.detail.map(e => e.msg).join(", ")}`);
+    }
+    const errorText = await response.text();
+    throw new Error(`Jsonize API Error: ${response.status} - ${errorText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Step 2: Analyze structured JSON for SUT compliance
+ * POST /analyze
+ */
 export async function analyzeHealthReport(
   request: HealthReportRequest
 ): Promise<AnalysisResponse> {
@@ -140,103 +182,25 @@ export async function analyzeHealthReport(
       const errorData: HTTPValidationError = await response.json();
       throw new Error(`Validation Error: ${errorData.detail.map(e => e.msg).join(", ")}`);
     }
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`Analyze API Error: ${response.status} - ${errorText}`);
   }
 
   return response.json();
 }
 
-// Helper to convert extracted data to API request format
-export function prepareHealthReportRequest(extractedData: {
-  title?: string;
-  reportInformation?: Partial<ReportInformation>;
-  patient?: {
-    demographic?: Partial<Demographic>;
-    diagnoses?: Partial<Diagnosis>[];
-  };
-  medicationInformation?: Partial<MedicationInformation>[];
-  doctors?: Partial<Doctor>[];
-  findings?: Partial<Finding>[];
-  notes?: Partial<Notes>;
-}): HealthReportRequest {
-  // Fill in default values for required fields
-  const defaultFacility: Facility = {
-    code: extractedData.reportInformation?.facility?.code || "",
-    title: extractedData.reportInformation?.facility?.title || "",
-  };
-
-  const defaultReportInfo: ReportInformation = {
-    reportNo: extractedData.reportInformation?.reportNo || "",
-    reportDate: extractedData.reportInformation?.reportDate || "",
-    protocolNo: extractedData.reportInformation?.protocolNo || "",
-    reportType: extractedData.reportInformation?.reportType || "",
-    facility: defaultFacility,
-  };
-
-  const defaultDemographic: Demographic = {
-    gender: extractedData.patient?.demographic?.gender || "",
-    dateOfBirth: extractedData.patient?.demographic?.dateOfBirth || "",
-    age: extractedData.patient?.demographic?.age || 0,
-  };
-
-  const diagnoses: Diagnosis[] = (extractedData.patient?.diagnoses || []).map((d) => ({
-    code: d.code || "",
-    title: d.title || "",
-    description: d.description || "",
-    startDate: d.startDate || "",
-    endDate: d.endDate || "",
-  }));
-
-  const medications: MedicationInformation[] = (extractedData.medicationInformation || []).map((m) => ({
-    activeIngredient: m.activeIngredient || "",
-    sgkCode: m.sgkCode || "",
-    brandName: m.brandName || "",
-    form: m.form || "",
-    dose: m.dose || "",
-    usage: {
-      frequency: m.usage?.frequency || "",
-      amount: m.usage?.amount || "",
-    },
-    addedTime: m.addedTime || "",
-  }));
-
-  const doctors: Doctor[] = (extractedData.doctors || []).map((d) => ({
-    fullName: d.fullName || "",
-    specialty: d.specialty || "",
-    diplomaNo: d.diplomaNo || "",
-    registrationNo: d.registrationNo || "",
-  }));
-
-  const findings: Finding[] = (extractedData.findings || []).map((f) => ({
-    type: f.type || "",
-    value: f.value || "",
-    description: f.description || "",
-    date: f.date || "",
-  }));
-
-  const notes: Notes = {
-    clinicalSummary: extractedData.notes?.clinicalSummary || "",
-    dosageDetails: extractedData.notes?.dosageDetails || "",
-    allergies: extractedData.notes?.allergies || "",
-    contraindications: extractedData.notes?.contraindications || "",
-    sideEffects: extractedData.notes?.sideEffects || "",
-    monitoring: extractedData.notes?.monitoring || "",
-    lifestyle: extractedData.notes?.lifestyle || "",
-    emergencyInstructions: extractedData.notes?.emergencyInstructions || "",
-    additionalComments: extractedData.notes?.additionalComments || "",
-  };
-
-  return {
-    title: extractedData.title || "Huner Engine Medical Report Extractor v1.0",
-    reportInformation: defaultReportInfo,
-    patient: {
-      demographic: defaultDemographic,
-      diagnoses,
-    },
-    medicationInformation: medications,
-    doctors,
-    findings,
-    notes,
-  };
+/**
+ * Full pipeline: Plain text → JSON → SUT Analysis
+ */
+export async function processReport(text: string): Promise<{
+  jsonizeResponse: JsonizeResponse;
+  analysisResponse: AnalysisResponse;
+}> {
+  // Step 1: Convert plain text to structured JSON
+  const jsonizeResponse = await jsonizeReport(text);
+  
+  // Step 2: Analyze the structured data
+  const analysisResponse = await analyzeHealthReport(jsonizeResponse.data);
+  
+  return { jsonizeResponse, analysisResponse };
 }
-
