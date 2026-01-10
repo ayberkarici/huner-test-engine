@@ -25,6 +25,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   MessageSquare,
+  ExternalLink,
+  HelpCircle,
+  PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -37,7 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, estimateTokens, formatLatency, formatTimestamp } from "@/lib/utils";
-import { sampleMedicalReport, mockExtractedData, mockSUTEvaluation } from "@/lib/mock-data";
+import { sampleMedicalReport, mockExtractedData, mockSUTEvaluation, SUT_MANAGEMENT_URL } from "@/lib/mock-data";
 
 // Types
 interface ExtractedData {
@@ -107,7 +110,7 @@ interface SUTMedication {
   id: string;
   sgkCode: string;
   activeIngredient: string;
-  result: "Uygun" | "Uygun Değil";
+  result: "Uygun" | "Uygun Değil" | "Bulunamadı";
   evaluation: string;
   diagnosisCode?: string;
   specialty?: string;
@@ -295,18 +298,42 @@ function SUTEvaluationCard({
   const [localComment, setLocalComment] = useState(feedback.comment);
 
   const isUygun = medication.result === "Uygun";
+  const isBulunamadi = medication.result === "Bulunamadı";
+
+  // Get card styling based on result
+  const getCardStyle = () => {
+    if (isBulunamadi) return "border-warning/30 bg-warning/5";
+    if (isUygun) return "border-success/30 bg-success/5";
+    return "border-destructive/30 bg-destructive/5";
+  };
+
+  const getBarColor = () => {
+    if (isBulunamadi) return "bg-warning";
+    if (isUygun) return "bg-success";
+    return "bg-destructive";
+  };
+
+  const getIconBgColor = () => {
+    if (isBulunamadi) return "bg-warning/20 text-warning";
+    if (isUygun) return "bg-success/20 text-success";
+    return "bg-destructive/20 text-destructive";
+  };
+
+  const getBadgeVariant = () => {
+    if (isBulunamadi) return "warning" as const;
+    if (isUygun) return "success" as const;
+    return "destructive" as const;
+  };
 
   return (
     <Card className={cn(
       "relative overflow-hidden transition-all duration-300",
-      isUygun 
-        ? "border-success/30 bg-success/5" 
-        : "border-destructive/30 bg-destructive/5"
+      getCardStyle()
     )}>
       {/* Status indicator bar */}
       <div className={cn(
         "absolute top-0 left-0 right-0 h-1",
-        isUygun ? "bg-success" : "bg-destructive"
+        getBarColor()
       )} />
       
       <CardHeader className="pb-3 pt-5">
@@ -314,11 +341,13 @@ function SUTEvaluationCard({
           <div className="flex items-center gap-3">
             <div className={cn(
               "flex h-12 w-12 items-center justify-center rounded-lg font-mono text-sm font-bold",
-              isUygun 
-                ? "bg-success/20 text-success" 
-                : "bg-destructive/20 text-destructive"
+              getIconBgColor()
             )}>
-              <Pill className="h-6 w-6" />
+              {isBulunamadi ? (
+                <HelpCircle className="h-6 w-6" />
+              ) : (
+                <Pill className="h-6 w-6" />
+              )}
             </div>
             <div>
               <CardTitle className="text-lg font-bold tracking-wide">
@@ -330,10 +359,12 @@ function SUTEvaluationCard({
             </div>
           </div>
           <Badge
-            variant={isUygun ? "success" : "destructive"}
+            variant={getBadgeVariant()}
             className="text-sm px-3 py-1 gap-1.5"
           >
-            {isUygun ? (
+            {isBulunamadi ? (
+              <HelpCircle className="h-4 w-4" />
+            ) : isUygun ? (
               <CheckCircle2 className="h-4 w-4" />
             ) : (
               <XCircle className="h-4 w-4" />
@@ -354,6 +385,32 @@ function SUTEvaluationCard({
             {medication.evaluation}
           </p>
         </div>
+
+        {/* Not Found - Add Ingredient Link */}
+        {isBulunamadi && (
+          <div className="p-4 rounded-lg bg-warning/10 border border-warning/30">
+            <div className="flex items-start gap-3">
+              <PlusCircle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-warning">
+                  Etken madde sistemde bulunamadı
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Bu etken maddeyi SUT veritabanına eklemek için aşağıdaki bağlantıyı kullanın.
+                </p>
+                <a
+                  href={SUT_MANAGEMENT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Etken Madde Ekle
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Meta info */}
         {(medication.diagnosisCode || medication.specialty || medication.sutReference) && (
@@ -376,14 +433,16 @@ function SUTEvaluationCard({
           </div>
         )}
 
-        <Separator className="my-3" />
+        {!isBulunamadi && (
+          <>
+            <Separator className="my-3" />
 
-        {/* Feedback section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-              Bu değerlendirme doğru mu?
-            </span>
+            {/* Feedback section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                  Bu değerlendirme doğru mu?
+                </span>
             <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -458,28 +517,30 @@ function SUTEvaluationCard({
             </div>
           )}
 
-          {/* Comment input */}
-          {showComment && (
-            <div className="space-y-2 animate-fade-in">
-              <Textarea
-                placeholder="Yorumunuzu buraya yazın..."
-                className="min-h-[80px] text-sm bg-muted/30"
-                value={localComment}
-                onChange={(e) => setLocalComment(e.target.value)}
-              />
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  onFeedback(feedback.isCorrect, localComment);
-                  setShowComment(false);
-                }}
-              >
-                Yorumu Kaydet
-              </Button>
+              {/* Comment input */}
+              {showComment && (
+                <div className="space-y-2 animate-fade-in">
+                  <Textarea
+                    placeholder="Yorumunuzu buraya yazın..."
+                    className="min-h-[80px] text-sm bg-muted/30"
+                    value={localComment}
+                    onChange={(e) => setLocalComment(e.target.value)}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      onFeedback(feedback.isCorrect, localComment);
+                      setShowComment(false);
+                    }}
+                  >
+                    Yorumu Kaydet
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

@@ -23,6 +23,9 @@ TANILAR
 2. Hipertansiyon (I10) - Esansiyel (primer) hipertansiyon
    Başlangıç: 05/03/2018
 
+3. Tip 2 Diabetes Mellitus (E11.9)
+   Başlangıç: 01/06/2022
+
 REÇETE EDİLEN İLAÇLAR
 1. Esomeprazol 40 mg Tablet
    SGK Kodu: SGKEZY
@@ -38,6 +41,13 @@ REÇETE EDİLEN İLAÇLAR
    Kullanım: Günde 1 kez
    Ekleme Tarihi: 15/03/2024 09:35
 
+3. Tirzepatid 5 mg Enjeksiyon
+   SGK Kodu: SGKTRZ
+   Form: Subkutan enjeksiyon
+   Doz: 5 mg
+   Kullanım: Haftada 1 kez
+   Ekleme Tarihi: 15/03/2024 09:40
+
 HEKİM BİLGİLERİ
 Dr. Mehmet Yıldırım
 Uzmanlık: İç Hastalıkları
@@ -45,7 +55,7 @@ Diploma No: 34567
 Sicil No: TR-ICH-2012-045
 
 KLİNİK ÖZET
-Hasta kronik GÖRH ve hipertansiyon tanıları ile takip edilmektedir. Mevcut tedavi ile semptomlar kontrol altındadır.
+Hasta kronik GÖRH, hipertansiyon ve Tip 2 DM tanıları ile takip edilmektedir. Mevcut tedavi ile semptomlar kontrol altındadır.
 `;
 
 // Mock extracted JSON response
@@ -78,6 +88,11 @@ export const mockExtractedData = {
         code: "I10",
         title: "Esansiyel (primer) hipertansiyon",
         startDate: "05/03/2018"
+      },
+      {
+        code: "E11.9",
+        title: "Tip 2 diabetes mellitus",
+        startDate: "01/06/2022"
       }
     ]
   },
@@ -103,6 +118,17 @@ export const mockExtractedData = {
         amount: "1 tablet"
       },
       addedTime: "15/03/2024 09:35"
+    },
+    {
+      activeIngredient: "Tirzepatid",
+      sgkCode: "SGKTRZ",
+      form: "Subkutan enjeksiyon",
+      dose: "5 mg",
+      usage: {
+        frequency: "Haftada 1 kez",
+        amount: "1 enjeksiyon"
+      },
+      addedTime: "15/03/2024 09:40"
     }
   ],
   doctors: [
@@ -115,11 +141,11 @@ export const mockExtractedData = {
   ],
   findings: [],
   notes: {
-    clinicalSummary: "Hasta kronik GÖRH ve hipertansiyon tanıları ile takip edilmektedir. Mevcut tedavi ile semptomlar kontrol altındadır."
+    clinicalSummary: "Hasta kronik GÖRH, hipertansiyon ve Tip 2 DM tanıları ile takip edilmektedir. Mevcut tedavi ile semptomlar kontrol altındadır."
   }
 };
 
-// Mock SUT compliance evaluation - Updated format
+// Mock SUT compliance evaluation - Updated format with "Bulunamadı" example
 export const mockSUTEvaluation = {
   medications: [
     {
@@ -141,9 +167,21 @@ export const mockSUTEvaluation = {
       diagnosisCode: "I10",
       specialty: "İç Hastalıkları",
       sutReference: "EK-4F Madde 51 - Antihipertansif Kombinasyonlar"
+    },
+    {
+      id: "eval-3",
+      sgkCode: "SGKTRZ",
+      activeIngredient: "Tirzepatid",
+      result: "Bulunamadı" as const,
+      evaluation: "Bu etken madde SUT veritabanında bulunamadı. Lütfen etken maddeyi sisteme ekleyin.",
+      diagnosisCode: "E11.9",
+      specialty: "İç Hastalıkları"
     }
   ],
   overallResult: "Uygun Değil" as const,
-  summary: "Reçetedeki ilaçlardan biri SUT kriterlerini karşılamamaktadır. Valsartan/Amlodipin kombinasyonu için monoterapi yetersizliğinin raporda belgelenmesi gerekmektedir.",
+  summary: "Reçetedeki ilaçlardan biri SUT kriterlerini karşılamamaktadır ve bir etken madde sistemde bulunamadı. Eksik etken maddeler için SUT yönetim panelinden ekleme yapılması gerekmektedir.",
   timestamp: new Date().toISOString()
 };
+
+// SUT Management URL for adding new ingredients
+export const SUT_MANAGEMENT_URL = "https://hunerai.com/admin/sut-management";
