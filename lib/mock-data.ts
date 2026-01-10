@@ -16,79 +16,36 @@ Cinsiyet: Erkek
 Doğum Tarihi: 22/05/1978
 
 TANILAR
-1. Romatoid Artrit (M05.8) - Seropozitif romatoid artrit, diğer
-   Başlangıç: 10/01/2020
-   Tanı açıklaması: Hasta 4 yıldır romatoid artrit tanısıyla takip edilmektedir. Bilateral el ve ayak bilek eklemlerinde aktif sinovit mevcuttur.
+1. Gastroözofageal Reflü Hastalığı (K21.9)
+   Başlangıç: 10/01/2024
+   Tanı açıklaması: Kronik GÖRH tanısı ile takipli hasta
 
 2. Hipertansiyon (I10) - Esansiyel (primer) hipertansiyon
    Başlangıç: 05/03/2018
 
 REÇETE EDİLEN İLAÇLAR
-1. Adalimumab (HUMIRA) 40 mg Enjeksiyonluk Çözelti - Prefilled Şırınga
-   SGK Kodu: 8699514013105
-   Form: Subkutan enjeksiyon
+1. Esomeprazol 40 mg Tablet
+   SGK Kodu: SGKEZY
+   Form: Oral tablet
    Doz: 40 mg
-   Kullanım: 2 haftada 1 kez, 1 adet
+   Kullanım: Günde 1 kez
    Ekleme Tarihi: 15/03/2024 09:30
 
-2. Metotreksat 2.5 mg Tablet
-   SGK Kodu: 8699504350142
+2. Valsartan/Amlodipin 160/10 mg Tablet
+   SGK Kodu: SGKG72
    Form: Oral tablet
-   Doz: 15 mg/hafta (6 tablet)
-   Kullanım: Haftada 1 kez, 6 tablet (Cumartesi günü)
+   Doz: 160/10 mg
+   Kullanım: Günde 1 kez
    Ekleme Tarihi: 15/03/2024 09:35
 
-3. Folik Asit 5 mg Tablet
-   Form: Oral tablet
-   Doz: 5 mg
-   Kullanım: Haftada 1 kez (Metotreksat alımından 24-48 saat sonra)
-   Ekleme Tarihi: 15/03/2024 09:36
-
 HEKİM BİLGİLERİ
-Dr. Ayşe Yılmaz
-Uzmanlık: Romatoloji
-Diploma No: 45678
-Sicil No: TR-ROM-2015-001
-
-LABORATUVAR BULGULARI
-- CRP: 2.8 mg/L (Normal: <5) - Tarih: 10/03/2024
-- ESH: 28 mm/saat (Normal: <20) - Tarih: 10/03/2024
-- RF: 156 IU/mL (Pozitif) - Tarih: 10/03/2024
-- Anti-CCP: 245 U/mL (Yüksek pozitif) - Tarih: 10/03/2024
-- ALT: 24 U/L (Normal) - Tarih: 10/03/2024
-- Kreatinin: 0.9 mg/dL (Normal) - Tarih: 10/03/2024
+Dr. Mehmet Yıldırım
+Uzmanlık: İç Hastalıkları
+Diploma No: 34567
+Sicil No: TR-ICH-2012-045
 
 KLİNİK ÖZET
-Hasta 2020 yılında romatoid artrit tanısı almış olup, başlangıçta konvansiyonel DMARD tedavisi (metotreksat) başlanmıştır. 2022 yılında hastalık aktivitesi artış gösterince adalimumab tedavisi eklenmiştir. Mevcut durumda DAS28-CRP skoru 3.2 olup orta hastalık aktivitesi mevcuttur. Tedaviye uyumu iyidir.
-
-ALERJİLER
-- Penisilin grubu antibiyotiklere alerji (ürtiker)
-- Sulfonamid grubu ilaçlara hassasiyet
-
-KONTRENDİKASYONLAR
-- Aktif enfeksiyon varlığında adalimumab kullanılmamalıdır
-- Canlı aşı uygulaması kontrendikedir
-- Metotreksat ile NSAİİ etkileşimi - dikkatli kullanılmalıdır
-
-YAN ETKİLER
-- Adalimumab enjeksiyon bölgesinde hafif reaksiyon bildirilmiştir
-- Metotreksat ile hafif bulantı şikayeti (ilk haftalarda)
-
-TAKİP VE MONİTORİZASYON
-- 3 ayda bir romatoloji kontrolü
-- Aylık CBC, karaciğer fonksiyon testleri
-- 6 ayda bir göğüs röntgeni
-- Sonraki randevu: 15/06/2024
-
-YAŞAM TARZI ÖNERİLERİ
-- Sigara ve alkol kullanımından kaçınılmalıdır
-- Düzenli fizik tedavi ve egzersiz önerilmektedir
-- Dengeli beslenme ve yeterli D vitamini alımı
-- Enfeksiyon belirtilerine dikkat edilmeli
-
-ACİL DURUM TALİMATLARI
-- Yüksek ateş (>38.5°C), ciddi enfeksiyon bulguları veya şiddetli karın ağrısı durumunda acil servise başvurunuz
-- Acil İletişim: 0212 414 20 00
+Hasta kronik GÖRH ve hipertansiyon tanıları ile takip edilmektedir. Mevcut tedavi ile semptomlar kontrol altındadır.
 `;
 
 // Mock extracted JSON response
@@ -112,10 +69,10 @@ export const mockExtractedData = {
     },
     diagnoses: [
       {
-        code: "M05.8",
-        title: "Seropozitif romatoid artrit, diğer",
-        description: "Hasta 4 yıldır romatoid artrit tanısıyla takip edilmektedir. Bilateral el ve ayak bilek eklemlerinde aktif sinovit mevcuttur.",
-        startDate: "10/01/2020"
+        code: "K21.9",
+        title: "Gastroözofageal reflü hastalığı",
+        description: "Kronik GÖRH tanısı ile takipli hasta",
+        startDate: "10/01/2024"
       },
       {
         code: "I10",
@@ -126,133 +83,67 @@ export const mockExtractedData = {
   },
   medicationInformation: [
     {
-      activeIngredient: "Adalimumab",
-      sgkCode: "8699514013105",
-      brandName: "HUMIRA",
-      form: "Subkutan enjeksiyon",
+      activeIngredient: "Esomeprazol",
+      sgkCode: "SGKEZY",
+      form: "Oral tablet",
       dose: "40 mg",
       usage: {
-        frequency: "2 haftada 1 kez",
-        amount: "1 adet"
+        frequency: "Günde 1 kez",
+        amount: "1 tablet"
       },
       addedTime: "15/03/2024 09:30"
     },
     {
-      activeIngredient: "Metotreksat",
-      sgkCode: "8699504350142",
+      activeIngredient: "Valsartan/Amlodipin",
+      sgkCode: "SGKG72",
       form: "Oral tablet",
-      dose: "15 mg/hafta",
+      dose: "160/10 mg",
       usage: {
-        frequency: "Haftada 1 kez",
-        amount: "6 tablet"
-      },
-      addedTime: "15/03/2024 09:35"
-    },
-    {
-      activeIngredient: "Folik Asit",
-      form: "Oral tablet",
-      dose: "5 mg",
-      usage: {
-        frequency: "Haftada 1 kez",
+        frequency: "Günde 1 kez",
         amount: "1 tablet"
       },
-      addedTime: "15/03/2024 09:36"
+      addedTime: "15/03/2024 09:35"
     }
   ],
   doctors: [
     {
-      fullName: "Dr. Ayşe Yılmaz",
-      specialty: "Romatoloji",
-      diplomaNo: "45678",
-      registrationNo: "TR-ROM-2015-001"
+      fullName: "Dr. Mehmet Yıldırım",
+      specialty: "İç Hastalıkları",
+      diplomaNo: "34567",
+      registrationNo: "TR-ICH-2012-045"
     }
   ],
-  findings: [
-    {
-      type: "Laboratuvar",
-      value: "2.8 mg/L",
-      description: "CRP (Normal: <5)",
-      date: "10/03/2024"
-    },
-    {
-      type: "Laboratuvar",
-      value: "28 mm/saat",
-      description: "ESH (Normal: <20)",
-      date: "10/03/2024"
-    },
-    {
-      type: "Laboratuvar",
-      value: "156 IU/mL",
-      description: "RF (Pozitif)",
-      date: "10/03/2024"
-    },
-    {
-      type: "Laboratuvar",
-      value: "245 U/mL",
-      description: "Anti-CCP (Yüksek pozitif)",
-      date: "10/03/2024"
-    },
-    {
-      type: "Laboratuvar",
-      value: "24 U/L",
-      description: "ALT (Normal)",
-      date: "10/03/2024"
-    },
-    {
-      type: "Laboratuvar",
-      value: "0.9 mg/dL",
-      description: "Kreatinin (Normal)",
-      date: "10/03/2024"
-    }
-  ],
+  findings: [],
   notes: {
-    clinicalSummary: "Hasta 2020 yılında romatoid artrit tanısı almış olup, başlangıçta konvansiyonel DMARD tedavisi (metotreksat) başlanmıştır. 2022 yılında hastalık aktivitesi artış gösterince adalimumab tedavisi eklenmiştir. Mevcut durumda DAS28-CRP skoru 3.2 olup orta hastalık aktivitesi mevcuttur. Tedaviye uyumu iyidir.",
-    dosageDetails: "Adalimumab 40 mg subkutan, 2 haftada bir uygulama. Metotreksat 15 mg/hafta (6x2.5mg tablet), Cumartesi günü alınacak. Folik asit 5 mg, metotreksat alımından 24-48 saat sonra alınacak.",
-    allergies: "Penisilin grubu antibiyotiklere alerji (ürtiker). Sulfonamid grubu ilaçlara hassasiyet.",
-    contraindications: "Aktif enfeksiyon varlığında adalimumab kullanılmamalıdır. Canlı aşı uygulaması kontrendikedir. Metotreksat ile NSAİİ etkileşimi - dikkatli kullanılmalıdır.",
-    sideEffects: "Adalimumab enjeksiyon bölgesinde hafif reaksiyon bildirilmiştir. Metotreksat ile hafif bulantı şikayeti (ilk haftalarda).",
-    monitoring: "3 ayda bir romatoloji kontrolü. Aylık CBC, karaciğer fonksiyon testleri. 6 ayda bir göğüs röntgeni. Sonraki randevu: 15/06/2024",
-    lifestyle: "Sigara ve alkol kullanımından kaçınılmalıdır. Düzenli fizik tedavi ve egzersiz önerilmektedir. Dengeli beslenme ve yeterli D vitamini alımı. Enfeksiyon belirtilerine dikkat edilmeli.",
-    emergencyInstructions: "Yüksek ateş (>38.5°C), ciddi enfeksiyon bulguları veya şiddetli karın ağrısı durumunda acil servise başvurunuz. Acil İletişim: 0212 414 20 00"
+    clinicalSummary: "Hasta kronik GÖRH ve hipertansiyon tanıları ile takip edilmektedir. Mevcut tedavi ile semptomlar kontrol altındadır."
   }
 };
 
-// Mock SUT compliance evaluation
+// Mock SUT compliance evaluation - Updated format
 export const mockSUTEvaluation = {
   medications: [
     {
-      sgkCode: "8699514013105",
-      activeIngredient: "Adalimumab",
-      brandName: "HUMIRA",
-      result: "Uygun",
-      evaluation: "Romatoid artrit tanısı (M05.8) SUT kriterlerine uygun. Hasta en az 3 ay konvansiyonel DMARD tedavisi almış ve yanıt yetersiz kalmıştır. Biyolojik ajan kullanımı için gerekli koşullar sağlanmaktadır. DAS28 skoru 3.2 olup orta-yüksek hastalık aktivitesi mevcuttur.",
-      sutReference: "SUT 4.2.14.C - Romatizmal Hastalıklarda Biyolojik İlaç Kullanımı",
-      requiredDocs: ["Romatoloji uzman raporu", "DAS28 skoru belgesi", "Önceki tedavi yanıtsızlığı belgesi"]
+      id: "eval-1",
+      sgkCode: "SGKEZY",
+      activeIngredient: "Esomeprazol",
+      result: "Uygun" as const,
+      evaluation: "İlaç, EK-4/D listesinde yer almayan hastalıklar (20.00) tanı kodu ile verilmiştir. Tanı (K21.9) ve uzmanlık branşı (İç Hastalıkları) uygundur.",
+      diagnosisCode: "K21.9",
+      specialty: "İç Hastalıkları",
+      sutReference: "EK-4/D - Bedeli Ödenecek İlaçlar Listesi"
     },
     {
-      sgkCode: "8699504350142",
-      activeIngredient: "Metotreksat",
-      brandName: null,
-      result: "Uygun",
-      evaluation: "Romatoid artrit tedavisinde birinci basamak DMARD olarak metotreksat kullanımı SUT kapsamında onaylıdır. Haftalık 15 mg dozaj uygun aralıktadır.",
-      sutReference: "SUT 4.2.14.A - Konvansiyonel DMARD Tedavisi",
-      requiredDocs: ["Romatoloji uzman raporu"]
-    },
-    {
-      sgkCode: null,
-      activeIngredient: "Folik Asit",
-      brandName: null,
-      result: "Uygun",
-      evaluation: "Metotreksat kullanımına bağlı folat eksikliğini önlemek için folik asit suplementasyonu SUT kapsamında desteklenmektedir.",
-      sutReference: "SUT 4.2.14.A - Destek Tedavisi",
-      requiredDocs: []
+      id: "eval-2",
+      sgkCode: "SGKG72",
+      activeIngredient: "Valsartan/Amlodipin",
+      result: "Uygun Değil" as const,
+      evaluation: "EK-4F Madde 51'e göre, anjiyotensin reseptör blokerlerinin diğer antihipertansifler ile kombinasyonlarının kullanımında, hastanın monoterapi ile kan basıncının yeterli oranda kontrol altına alınamadığının raporda belirtilmesi zorunludur.",
+      diagnosisCode: "I10",
+      specialty: "İç Hastalıkları",
+      sutReference: "EK-4F Madde 51 - Antihipertansif Kombinasyonlar"
     }
   ],
-  overallResult: "Uygun",
-  summary: "Tüm reçete edilen ilaçlar SUT (Sağlık Uygulama Tebliği) kriterlerine uygundur. Romatoid artrit tanısı doğrulanmış olup, biyolojik ajan ve konvansiyonel DMARD kombinasyon tedavisi endikedir. Gerekli belgeler tamamlandığında SGK geri ödeme kapsamındadır.",
-  warnings: [
-    "Adalimumab için 3 aylık rapor süresi geçerlidir, rapor yenileme tarihi takip edilmelidir.",
-    "Biyolojik tedavi başlamadan önce tüberküloz taraması yapılmalıdır."
-  ]
+  overallResult: "Uygun Değil" as const,
+  summary: "Reçetedeki ilaçlardan biri SUT kriterlerini karşılamamaktadır. Valsartan/Amlodipin kombinasyonu için monoterapi yetersizliğinin raporda belgelenmesi gerekmektedir.",
+  timestamp: new Date().toISOString()
 };
-

@@ -21,8 +21,10 @@ import {
   XCircle,
   Zap,
   Pill,
-  Stethoscope,
   Shield,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -102,20 +104,21 @@ interface ExtractedData {
 }
 
 interface SUTMedication {
-  sgkCode: string | null;
+  id: string;
+  sgkCode: string;
   activeIngredient: string;
-  brandName: string | null;
   result: "Uygun" | "Uygun Değil";
   evaluation: string;
-  sutReference: string;
-  requiredDocs: string[];
+  diagnosisCode?: string;
+  specialty?: string;
+  sutReference?: string;
 }
 
 interface SUTEvaluation {
   medications: SUTMedication[];
   overallResult: "Uygun" | "Uygun Değil";
   summary: string;
-  warnings: string[];
+  timestamp?: string;
 }
 
 interface TelemetryLog {
@@ -132,6 +135,13 @@ interface TokenUsage {
   total: number;
 }
 
+interface FeedbackState {
+  [medicationId: string]: {
+    isCorrect: boolean | null;
+    comment: string;
+  };
+}
+
 // Mock fetch function
 async function mockFetch(
   inputText: string
@@ -140,8 +150,8 @@ async function mockFetch(
   const latency = Math.floor(Math.random() * 1200) + 800;
   await new Promise((resolve) => setTimeout(resolve, latency));
 
-  // Simulate occasional errors (10% chance)
-  if (Math.random() < 0.1) {
+  // Simulate occasional errors (5% chance)
+  if (Math.random() < 0.05) {
     throw new Error("API rate limit exceeded. Please try again later.");
   }
 
@@ -245,30 +255,233 @@ function ExtractedDataSkeleton() {
         <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-2/3" />
       </div>
-      <div className="pt-4 space-y-2">
-        <Skeleton className="h-5 w-1/3" />
-        <Skeleton className="h-32 w-full" />
-      </div>
     </div>
   );
 }
 
-function EvaluationSkeleton() {
+function SUTEvaluationSkeleton() {
   return (
-    <div className="space-y-4 p-4">
-      <div className="flex gap-2">
-        <Skeleton className="h-8 w-24" />
-        <Skeleton className="h-8 w-32" />
-      </div>
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-5/6" />
-      <div className="pt-4">
-        <Skeleton className="h-24 w-full" />
-      </div>
-      <div className="pt-4">
-        <Skeleton className="h-24 w-full" />
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[1, 2].map((i) => (
+        <div key={i} className="p-4 rounded-lg border bg-card/50 space-y-3">
+          <div className="flex justify-between">
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-6 w-20" />
+          </div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/5" />
+          <div className="flex gap-2 pt-2">
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-8" />
+          </div>
+        </div>
+      ))}
     </div>
+  );
+}
+
+// SUT Evaluation Card Component with Feedback
+function SUTEvaluationCard({
+  medication,
+  feedback,
+  onFeedback,
+}: {
+  medication: SUTMedication;
+  feedback: { isCorrect: boolean | null; comment: string };
+  onFeedback: (isCorrect: boolean | null, comment: string) => void;
+}) {
+  const [showComment, setShowComment] = useState(false);
+  const [localComment, setLocalComment] = useState(feedback.comment);
+
+  const isUygun = medication.result === "Uygun";
+
+  return (
+    <Card className={cn(
+      "relative overflow-hidden transition-all duration-300",
+      isUygun 
+        ? "border-success/30 bg-success/5" 
+        : "border-destructive/30 bg-destructive/5"
+    )}>
+      {/* Status indicator bar */}
+      <div className={cn(
+        "absolute top-0 left-0 right-0 h-1",
+        isUygun ? "bg-success" : "bg-destructive"
+      )} />
+      
+      <CardHeader className="pb-3 pt-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-lg font-mono text-sm font-bold",
+              isUygun 
+                ? "bg-success/20 text-success" 
+                : "bg-destructive/20 text-destructive"
+            )}>
+              <Pill className="h-6 w-6" />
+            </div>
+            <div>
+              <CardTitle className="text-lg font-bold tracking-wide">
+                {medication.sgkCode}
+              </CardTitle>
+              <CardDescription className="text-sm">
+                {medication.activeIngredient}
+              </CardDescription>
+            </div>
+          </div>
+          <Badge
+            variant={isUygun ? "success" : "destructive"}
+            className="text-sm px-3 py-1 gap-1.5"
+          >
+            {isUygun ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <XCircle className="h-4 w-4" />
+            )}
+            {medication.result}
+          </Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Evaluation text */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wide">
+            <MessageSquare className="h-3 w-3" />
+            Değerlendirme
+          </div>
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {medication.evaluation}
+          </p>
+        </div>
+
+        {/* Meta info */}
+        {(medication.diagnosisCode || medication.specialty || medication.sutReference) && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {medication.diagnosisCode && (
+              <Badge variant="outline" className="text-xs">
+                Tanı: {medication.diagnosisCode}
+              </Badge>
+            )}
+            {medication.specialty && (
+              <Badge variant="outline" className="text-xs">
+                {medication.specialty}
+              </Badge>
+            )}
+            {medication.sutReference && (
+              <Badge variant="secondary" className="text-xs">
+                📋 {medication.sutReference}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        <Separator className="my-3" />
+
+        {/* Feedback section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              Bu değerlendirme doğru mu?
+            </span>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={feedback.isCorrect === true ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "h-9 w-9 p-0 transition-all",
+                      feedback.isCorrect === true && "bg-success hover:bg-success/90 text-success-foreground"
+                    )}
+                    onClick={() => onFeedback(feedback.isCorrect === true ? null : true, localComment)}
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Doğru</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={feedback.isCorrect === false ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "h-9 w-9 p-0 transition-all",
+                      feedback.isCorrect === false && "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    )}
+                    onClick={() => {
+                      onFeedback(feedback.isCorrect === false ? null : false, localComment);
+                      if (feedback.isCorrect !== false) setShowComment(true);
+                    }}
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Yanlış</TooltipContent>
+              </Tooltip>
+
+              {feedback.isCorrect !== null && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-xs"
+                  onClick={() => setShowComment(!showComment)}
+                >
+                  <MessageSquare className="h-3 w-3 mr-1" />
+                  Yorum
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Feedback status indicator */}
+          {feedback.isCorrect !== null && (
+            <div className={cn(
+              "flex items-center gap-2 text-xs px-3 py-2 rounded-md",
+              feedback.isCorrect 
+                ? "bg-success/10 text-success" 
+                : "bg-destructive/10 text-destructive"
+            )}>
+              {feedback.isCorrect ? (
+                <>
+                  <CheckCircle2 className="h-3 w-3" />
+                  Doğru olarak işaretlendi
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-3 w-3" />
+                  Yanlış olarak işaretlendi
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Comment input */}
+          {showComment && (
+            <div className="space-y-2 animate-fade-in">
+              <Textarea
+                placeholder="Yorumunuzu buraya yazın..."
+                className="min-h-[80px] text-sm bg-muted/30"
+                value={localComment}
+                onChange={(e) => setLocalComment(e.target.value)}
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  onFeedback(feedback.isCorrect, localComment);
+                  setShowComment(false);
+                }}
+              >
+                Yorumu Kaydet
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -285,6 +498,7 @@ export default function TestWorkbench() {
   const [latency, setLatency] = useState<number | null>(null);
   const [telemetryOpen, setTelemetryOpen] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
+  const [feedback, setFeedback] = useState<FeedbackState>({});
 
   // Add log entry
   const addLog = useCallback(
@@ -301,6 +515,14 @@ export default function TestWorkbench() {
     []
   );
 
+  // Handle feedback update
+  const handleFeedback = useCallback((medicationId: string, isCorrect: boolean | null, comment: string) => {
+    setFeedback((prev) => ({
+      ...prev,
+      [medicationId]: { isCorrect, comment },
+    }));
+  }, []);
+
   // Process handler
   const handleProcess = async () => {
     if (!inputText.trim()) return;
@@ -311,6 +533,7 @@ export default function TestWorkbench() {
     setSutEvaluation(null);
     setTokenUsage(null);
     setLatency(null);
+    setFeedback({});
 
     const inputTokens = estimateTokens(inputText);
 
@@ -338,6 +561,13 @@ export default function TestWorkbench() {
         output: outputTokens,
         total: inputTokens + outputTokens,
       });
+
+      // Initialize feedback state for all medications
+      const initialFeedback: FeedbackState = {};
+      result.sutEvaluation.medications.forEach((med) => {
+        initialFeedback[med.id] = { isCorrect: null, comment: "" };
+      });
+      setFeedback(initialFeedback);
 
       // Log response
       addLog("response", result, totalLatency);
@@ -371,6 +601,7 @@ export default function TestWorkbench() {
     setError(null);
     setTokenUsage(null);
     setLatency(null);
+    setFeedback({});
   };
 
   return (
@@ -404,9 +635,10 @@ export default function TestWorkbench() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Top Row: Input + JSON Extraction (2 columns) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Section A: Input */}
-          <Card className="lg:col-span-1 border-gradient">
+          <Card className="border-gradient">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -435,7 +667,7 @@ export default function TestWorkbench() {
             <CardContent className="space-y-4">
               <Textarea
                 placeholder="Tıbbi rapor metnini buraya yapıştırın..."
-                className="min-h-[400px] font-mono text-sm bg-muted/30"
+                className="min-h-[350px] font-mono text-sm bg-muted/30"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
               />
@@ -476,7 +708,7 @@ export default function TestWorkbench() {
           </Card>
 
           {/* Section B: Extracted JSON */}
-          <Card className="lg:col-span-1 border-gradient">
+          <Card className="border-gradient">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -507,7 +739,7 @@ export default function TestWorkbench() {
               <CardDescription>AI çıkarım sonucu (JSON Schema)</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[480px] rounded-md border bg-muted/20 p-4">
+              <ScrollArea className="h-[400px] rounded-md border bg-muted/20 p-4">
                 {isProcessing ? (
                   <ExtractedDataSkeleton />
                 ) : error ? (
@@ -532,145 +764,102 @@ export default function TestWorkbench() {
               </ScrollArea>
             </CardContent>
           </Card>
+        </div>
 
-          {/* Section C: SUT Evaluation */}
-          <Card className="lg:col-span-1 border-gradient">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base">SUT Değerlendirmesi</CardTitle>
+        {/* Section C: SUT Evaluation - Full Width */}
+        <div className="mt-6">
+          <Card className="border-gradient">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base">SUT Değerlendirmesi</CardTitle>
+                </div>
+                {sutEvaluation && (
+                  <Badge
+                    variant={sutEvaluation.overallResult === "Uygun" ? "success" : "destructive"}
+                    className="text-sm px-4 py-1.5 gap-1.5"
+                  >
+                    {sutEvaluation.overallResult === "Uygun" ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <XCircle className="h-4 w-4" />
+                    )}
+                    GENEL SONUÇ: {sutEvaluation.overallResult.toUpperCase()}
+                  </Badge>
+                )}
               </div>
               <CardDescription>
-                Sağlık Uygulama Tebliği uyumluluk analizi
+                Sağlık Uygulama Tebliği uyumluluk analizi ve geri bildirim
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[480px]">
-                {isProcessing ? (
-                  <EvaluationSkeleton />
-                ) : error ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                    <AlertTriangle className="h-12 w-12 text-warning mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      Değerlendirme yapılamadı
-                    </p>
-                  </div>
-                ) : sutEvaluation ? (
-                  <div className="space-y-4">
-                    {/* Overall Result */}
-                    <div className="p-4 rounded-lg bg-muted/30 border">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium">Genel Sonuç</span>
-                        <Badge
-                          variant={
-                            sutEvaluation.overallResult === "Uygun"
-                              ? "success"
-                              : "destructive"
-                          }
-                          className="gap-1"
-                        >
-                          {sutEvaluation.overallResult === "Uygun" ? (
-                            <CheckCircle2 className="h-3 w-3" />
-                          ) : (
-                            <XCircle className="h-3 w-3" />
-                          )}
-                          {sutEvaluation.overallResult}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
+              {isProcessing ? (
+                <SUTEvaluationSkeleton />
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <AlertTriangle className="h-12 w-12 text-warning mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Değerlendirme yapılamadı
+                  </p>
+                </div>
+              ) : sutEvaluation ? (
+                <div className="space-y-6">
+                  {/* Summary */}
+                  {sutEvaluation.summary && (
+                    <div className={cn(
+                      "p-4 rounded-lg border",
+                      sutEvaluation.overallResult === "Uygun"
+                        ? "bg-success/5 border-success/20"
+                        : "bg-destructive/5 border-destructive/20"
+                    )}>
+                      <p className="text-sm text-foreground/80">
                         {sutEvaluation.summary}
                       </p>
                     </div>
+                  )}
 
-                    {/* Warnings */}
-                    {sutEvaluation.warnings.length > 0 && (
-                      <div className="space-y-2">
-                        <span className="text-xs font-medium text-warning flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          Uyarılar
+                  {/* Medication Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {sutEvaluation.medications.map((med) => (
+                      <SUTEvaluationCard
+                        key={med.id}
+                        medication={med}
+                        feedback={feedback[med.id] || { isCorrect: null, comment: "" }}
+                        onFeedback={(isCorrect, comment) => handleFeedback(med.id, isCorrect, comment)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Feedback Summary */}
+                  {Object.values(feedback).some((f) => f.isCorrect !== null) && (
+                    <div className="mt-4 p-4 rounded-lg bg-muted/30 border">
+                      <h4 className="text-sm font-medium mb-2">Geri Bildirim Özeti</h4>
+                      <div className="flex gap-4 text-sm">
+                        <span className="text-success">
+                          ✓ Doğru: {Object.values(feedback).filter((f) => f.isCorrect === true).length}
                         </span>
-                        {sutEvaluation.warnings.map((warning, i) => (
-                          <div
-                            key={i}
-                            className="text-xs p-2 rounded bg-warning/10 border border-warning/20 text-warning"
-                          >
-                            {warning}
-                          </div>
-                        ))}
+                        <span className="text-destructive">
+                          ✗ Yanlış: {Object.values(feedback).filter((f) => f.isCorrect === false).length}
+                        </span>
+                        <span className="text-muted-foreground">
+                          ○ Bekliyor: {Object.values(feedback).filter((f) => f.isCorrect === null).length}
+                        </span>
                       </div>
-                    )}
-
-                    <Separator />
-
-                    {/* Medication Evaluations */}
-                    <div className="space-y-3">
-                      <span className="text-sm font-medium flex items-center gap-2">
-                        <Pill className="h-4 w-4 text-primary" />
-                        İlaç Değerlendirmeleri
-                      </span>
-                      {sutEvaluation.medications.map((med, i) => (
-                        <div
-                          key={i}
-                          className="p-3 rounded-lg border bg-card/50 space-y-2"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="text-sm font-medium">
-                                {med.activeIngredient}
-                              </p>
-                              {med.brandName && (
-                                <p className="text-xs text-muted-foreground">
-                                  {med.brandName}
-                                </p>
-                              )}
-                            </div>
-                            <Badge
-                              variant={
-                                med.result === "Uygun" ? "success" : "destructive"
-                              }
-                              className="text-xs shrink-0"
-                            >
-                              {med.result}
-                            </Badge>
-                          </div>
-                          {med.sgkCode && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">
-                                SGK:
-                              </span>
-                              <code className="text-xs bg-muted px-1 rounded">
-                                {med.sgkCode}
-                              </code>
-                            </div>
-                          )}
-                          <p className="text-xs text-muted-foreground">
-                            {med.evaluation}
-                          </p>
-                          <div className="text-xs text-primary/80">
-                            📋 {med.sutReference}
-                          </div>
-                          {med.requiredDocs.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {med.requiredDocs.map((doc, j) => (
-                                <Badge key={j} variant="outline" className="text-xs">
-                                  {doc}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                    <Stethoscope className="h-12 w-12 text-muted-foreground/30 mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      Değerlendirme bekleniyor...
-                    </p>
-                  </div>
-                )}
-              </ScrollArea>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Shield className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Değerlendirme bekleniyor...
+                  </p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    Rapor işlendikten sonra SUT uyumluluk sonuçları burada görüntülenecek
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -868,4 +1057,3 @@ export default function TestWorkbench() {
     </div>
   );
 }
-
