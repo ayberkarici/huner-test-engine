@@ -413,27 +413,6 @@ function SUTEvaluationCard({
           </div>
         )}
 
-        {/* Meta info */}
-        {(medication.diagnosisCode || medication.specialty || medication.sutReference) && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {medication.diagnosisCode && (
-              <Badge variant="outline" className="text-xs">
-                Tanı: {medication.diagnosisCode}
-              </Badge>
-            )}
-            {medication.specialty && (
-              <Badge variant="outline" className="text-xs">
-                {medication.specialty}
-              </Badge>
-            )}
-            {medication.sutReference && (
-              <Badge variant="secondary" className="text-xs">
-                📋 {medication.sutReference}
-              </Badge>
-            )}
-          </div>
-        )}
-
         {!isBulunamadi && (
           <>
             <Separator className="my-3" />
