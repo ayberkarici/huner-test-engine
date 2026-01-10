@@ -41,6 +41,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, estimateTokens, formatLatency, formatTimestamp } from "@/lib/utils";
 import { sampleMedicalReport, mockExtractedData, mockSUTEvaluation, SUT_MANAGEMENT_URL } from "@/lib/mock-data";
+import { analyzeHealthReport, prepareHealthReportRequest, type AnalysisResponse } from "@/lib/api";
 
 // Types
 interface ExtractedData {
@@ -560,6 +561,8 @@ export default function TestWorkbench() {
   const [telemetryOpen, setTelemetryOpen] = useState<boolean>(true);
   const [copied, setCopied] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<FeedbackState>({});
+  const [isMockMode, setIsMockMode] = useState<boolean>(true); // Toggle between mock and real API
+  const [apiResponse, setApiResponse] = useState<AnalysisResponse | null>(null); // Store raw API response
 
   // Add log entry
   const addLog = useCallback(
@@ -584,6 +587,49 @@ export default function TestWorkbench() {
     }));
   }, []);
 
+  // Parse API response to extract SUT evaluation
+  const parseApiResponse = (response: AnalysisResponse): SUTEvaluation => {
+    try {
+      // The API returns 'data' as a string, try to parse it as JSON
+      const parsedData = JSON.parse(response.data);
+      
+      // Transform to our SUTEvaluation format
+      if (parsedData.medications) {
+        return {
+          medications: parsedData.medications.map((med: Record<string, unknown>, index: number) => ({
+            id: `eval-${index + 1}`,
+            sgkCode: med.sgkCode || med.sgk_code || "",
+            activeIngredient: med.activeIngredient || med.active_ingredient || "",
+            result: med.result || med.status || "Uygun",
+            evaluation: med.evaluation || med.message || "",
+            diagnosisCode: med.diagnosisCode || med.diagnosis_code,
+            specialty: med.specialty,
+            sutReference: med.sutReference || med.sut_reference,
+          })),
+          overallResult: parsedData.overallResult || parsedData.overall_result || "Uygun",
+          summary: parsedData.summary || parsedData.message || response.message,
+          timestamp: new Date().toISOString(),
+        };
+      }
+      
+      // Fallback if structure is different
+      return {
+        medications: [],
+        overallResult: "Uygun",
+        summary: response.message,
+        timestamp: new Date().toISOString(),
+      };
+    } catch {
+      // If data is not valid JSON, return a default structure with the message
+      return {
+        medications: [],
+        overallResult: "Uygun",
+        summary: response.message || response.data,
+        timestamp: new Date().toISOString(),
+      };
+    }
+  };
+
   // Process handler
   const handleProcess = async () => {
     if (!inputText.trim()) return;
@@ -595,20 +641,45 @@ export default function TestWorkbench() {
     setTokenUsage(null);
     setLatency(null);
     setFeedback({});
+    setApiResponse(null);
 
     const inputTokens = estimateTokens(inputText);
 
     // Log request
     addLog("request", {
-      endpoint: "/api/extract",
+      endpoint: isMockMode ? "/api/mock" : "https://sut-engine.hunerai.com/analyze",
       method: "POST",
       body: { text: inputText.slice(0, 200) + "..." },
       inputTokens,
+      mode: isMockMode ? "mock" : "live",
     });
 
     try {
       const startTime = performance.now();
-      const result = await mockFetch(inputText);
+      
+      let result: { extractedData: ExtractedData; sutEvaluation: SUTEvaluation };
+      
+      if (isMockMode) {
+        // Use mock data
+        result = await mockFetch(inputText);
+      } else {
+        // Use real API
+        // First, prepare the request from extracted mock data (in real scenario, this would come from extraction API)
+        const healthReportRequest = prepareHealthReportRequest(mockExtractedData);
+        
+        // Call the analyze API
+        const response = await analyzeHealthReport(healthReportRequest);
+        setApiResponse(response);
+        
+        // Parse the response
+        const sutEval = parseApiResponse(response);
+        
+        result = {
+          extractedData: mockExtractedData as ExtractedData,
+          sutEvaluation: sutEval,
+        };
+      }
+      
       const endTime = performance.now();
       const totalLatency = Math.round(endTime - startTime);
 
@@ -663,6 +734,7 @@ export default function TestWorkbench() {
     setTokenUsage(null);
     setLatency(null);
     setFeedback({});
+    setApiResponse(null);
   };
 
   return (
@@ -685,10 +757,28 @@ export default function TestWorkbench() {
                 <Activity className="h-3 w-3" />
                 <span>SUT Compliance</span>
               </Badge>
-              <Badge variant="secondary" className="gap-1">
-                <Server className="h-3 w-3" />
-                <span>Mock Mode</span>
-              </Badge>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setIsMockMode(!isMockMode)}
+                    className="focus:outline-none focus:ring-2 focus:ring-primary rounded-full"
+                  >
+                    <Badge 
+                      variant={isMockMode ? "secondary" : "default"}
+                      className={cn(
+                        "gap-1 cursor-pointer transition-all hover:scale-105",
+                        !isMockMode && "bg-emerald-600 hover:bg-emerald-700"
+                      )}
+                    >
+                      <Server className="h-3 w-3" />
+                      <span>{isMockMode ? "Mock Mode" : "Live API"}</span>
+                    </Badge>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isMockMode ? "Mock mod aktif - tıklayarak canlı API'ye geçin" : "Canlı API aktif - tıklayarak mock moda geçin"}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>
