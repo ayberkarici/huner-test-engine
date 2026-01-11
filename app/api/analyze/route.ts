@@ -8,6 +8,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     console.log("[Proxy /analyze] Calling:", `${SUT_ENGINE_URL}/analyze`);
+    console.log("[Proxy /analyze] Request body keys:", Object.keys(body));
+    console.log("[Proxy /analyze] Request body:", JSON.stringify(body).slice(0, 500));
 
     const response = await fetch(`${SUT_ENGINE_URL}/analyze`, {
       method: "POST",

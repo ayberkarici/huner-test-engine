@@ -107,11 +107,8 @@ export interface JsonizeRequest {
   text: string;
 }
 
-export interface JsonizeResponse {
-  request_id: string;
-  message: string;
-  data: HealthReportRequest;
-}
+// /jsonize returns HealthReportRequest directly (no wrapper)
+export type JsonizeResponse = HealthReportRequest;
 
 // Analyze endpoint types  
 export interface AnalysisResponse {
@@ -210,10 +207,12 @@ export async function processReport(text: string): Promise<{
   analysisResponse: AnalysisResponse;
 }> {
   // Step 1: Convert plain text to structured JSON
+  // /jsonize returns HealthReportRequest directly
   const jsonizeResponse = await jsonizeReport(text);
   
   // Step 2: Analyze the structured data
-  const analysisResponse = await analyzeHealthReport(jsonizeResponse.data);
+  // Pass the jsonizeResponse directly (it IS the HealthReportRequest)
+  const analysisResponse = await analyzeHealthReport(jsonizeResponse);
   
   return { jsonizeResponse, analysisResponse };
 }

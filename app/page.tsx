@@ -649,7 +649,8 @@ export default function TestWorkbench() {
         setApiResponse(analysisResponse);
         
         // Use the extracted data from jsonize response
-        const extractedFromApi = jsonizeResponse.data as unknown as ExtractedData;
+        // jsonizeResponse IS the HealthReportRequest directly (no .data wrapper)
+        const extractedFromApi = jsonizeResponse as unknown as ExtractedData;
         
         // Parse the SUT evaluation from analyze response
         const sutEval = parseApiResponse(analysisResponse);
