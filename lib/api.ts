@@ -150,16 +150,21 @@ export async function jsonizeReport(text: string): Promise<JsonizeResponse> {
     body: JSON.stringify({ text }),
   });
 
-  if (!response.ok) {
-    if (response.status === 422) {
-      const errorData: HTTPValidationError = await response.json();
-      throw new Error(`Validation Error: ${errorData.detail.map(e => e.msg).join(", ")}`);
-    }
-    const errorText = await response.text();
-    throw new Error(`Jsonize API Error: ${response.status} - ${errorText}`);
+  const responseData = await response.json();
+  
+  // Check if the response is an error from our proxy
+  if (responseData.error) {
+    throw new Error(`${responseData.error}: ${responseData.details || 'Unknown error'}`);
   }
 
-  return response.json();
+  if (!response.ok) {
+    if (response.status === 422 && responseData.detail) {
+      throw new Error(`Validation Error: ${responseData.detail.map((e: ValidationError) => e.msg).join(", ")}`);
+    }
+    throw new Error(`Jsonize API Error: ${response.status}`);
+  }
+
+  return responseData as JsonizeResponse;
 }
 
 /**
@@ -177,16 +182,21 @@ export async function analyzeHealthReport(
     body: JSON.stringify(request),
   });
 
-  if (!response.ok) {
-    if (response.status === 422) {
-      const errorData: HTTPValidationError = await response.json();
-      throw new Error(`Validation Error: ${errorData.detail.map(e => e.msg).join(", ")}`);
-    }
-    const errorText = await response.text();
-    throw new Error(`Analyze API Error: ${response.status} - ${errorText}`);
+  const responseData = await response.json();
+  
+  // Check if the response is an error from our proxy
+  if (responseData.error) {
+    throw new Error(`${responseData.error}: ${responseData.details || 'Unknown error'}`);
   }
 
-  return response.json();
+  if (!response.ok) {
+    if (response.status === 422 && responseData.detail) {
+      throw new Error(`Validation Error: ${responseData.detail.map((e: ValidationError) => e.msg).join(", ")}`);
+    }
+    throw new Error(`Analyze API Error: ${response.status}`);
+  }
+
+  return responseData as AnalysisResponse;
 }
 
 /**
