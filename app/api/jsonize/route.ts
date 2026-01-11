@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     console.log("[Proxy /jsonize] Calling:", `${SUT_ENGINE_URL}/jsonize`);
+    console.log("[Proxy /jsonize] Request body:", JSON.stringify(body).slice(0, 300));
 
     const response = await fetch(`${SUT_ENGINE_URL}/jsonize`, {
       method: "POST",
