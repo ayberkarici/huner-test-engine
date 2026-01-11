@@ -41,7 +41,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, estimateTokens, formatLatency, formatTimestamp } from "@/lib/utils";
 import { sampleMedicalReport, mockExtractedData, mockSUTEvaluation, SUT_MANAGEMENT_URL } from "@/lib/mock-data";
-import { processReport, type AnalysisResponse } from "@/lib/api";
+import { jsonizeReport, analyzeHealthReport, type AnalysisResponse, type JsonizeResponse } from "@/lib/api";
 
 // Types
 interface ExtractedData {
@@ -567,46 +567,31 @@ export default function TestWorkbench() {
   }, []);
 
   // Parse API response to extract SUT evaluation
+  // API returns: { request_id, message, data: { medications: [{ sgkCode, sonuc, degerlendirme }] } }
   const parseApiResponse = (response: AnalysisResponse): SUTEvaluation => {
-    try {
-      // The API returns 'data' as a string, try to parse it as JSON
-      const parsedData = JSON.parse(response.data);
-      
-      // Transform to our SUTEvaluation format
-      if (parsedData.medications) {
-        return {
-          medications: parsedData.medications.map((med: Record<string, unknown>, index: number) => ({
-            id: `eval-${index + 1}`,
-            sgkCode: med.sgkCode || med.sgk_code || "",
-            activeIngredient: med.activeIngredient || med.active_ingredient || "",
-            result: med.result || med.status || "Uygun",
-            evaluation: med.evaluation || med.message || "",
-            diagnosisCode: med.diagnosisCode || med.diagnosis_code,
-            specialty: med.specialty,
-            sutReference: med.sutReference || med.sut_reference,
-          })),
-          overallResult: parsedData.overallResult || parsedData.overall_result || "Uygun",
-          summary: parsedData.summary || parsedData.message || response.message,
-          timestamp: new Date().toISOString(),
-        };
-      }
-      
-      // Fallback if structure is different
-      return {
-        medications: [],
-        overallResult: "Uygun",
-        summary: response.message,
-        timestamp: new Date().toISOString(),
-      };
-    } catch {
-      // If data is not valid JSON, return a default structure with the message
-      return {
-        medications: [],
-        overallResult: "Uygun",
-        summary: response.message || response.data,
-        timestamp: new Date().toISOString(),
-      };
+    const medications = response.data?.medications || [];
+    
+    // Check if any medication is "Uygun Değil" or "Bulunamadı"
+    const hasUygunDegil = medications.some(med => med.sonuc === "Uygun Değil");
+    const hasBulunamadi = medications.some(med => med.sonuc === "Bulunamadı");
+    
+    let overallResult: "Uygun" | "Uygun Değil" = "Uygun";
+    if (hasUygunDegil || hasBulunamadi) {
+      overallResult = "Uygun Değil";
     }
+    
+    return {
+      medications: medications.map((med, index) => ({
+        id: `eval-${index + 1}`,
+        sgkCode: med.sgkCode || "",
+        activeIngredient: "", // API doesn't return this, we can get from extracted data
+        result: med.sonuc || "Uygun",
+        evaluation: med.degerlendirme || "",
+      })),
+      overallResult,
+      summary: response.message || "Analiz tamamlandı",
+      timestamp: new Date().toISOString(),
+    };
   };
 
   // Process handler
@@ -641,49 +626,73 @@ export default function TestWorkbench() {
       if (isMockMode) {
         // Use mock data
         result = await mockFetch(inputText);
+        
+        const endTime = performance.now();
+        const totalLatency = Math.round(endTime - startTime);
+        const outputTokens = estimateTokens(JSON.stringify(result.extractedData));
+
+        setExtractedData(result.extractedData);
+        setSutEvaluation(result.sutEvaluation);
+        setLatency(totalLatency);
+        setTokenUsage({
+          input: inputTokens,
+          output: outputTokens,
+          total: inputTokens + outputTokens,
+        });
+
+        // Initialize feedback state
+        const initialFeedback: FeedbackState = {};
+        result.sutEvaluation.medications.forEach((med) => {
+          initialFeedback[med.id] = { isCorrect: null, comment: "" };
+        });
+        setFeedback(initialFeedback);
+
+        addLog("response", result, totalLatency);
       } else {
         // Use real API with two-step flow
+        
         // Step 1: /jsonize - Convert plain text to structured JSON
+        addLog("request", { step: 1, endpoint: "/jsonize", text: inputText.slice(0, 100) + "..." });
+        const jsonizeResponse = await jsonizeReport(inputText);
+        
+        // Immediately show extracted data
+        const extractedFromApi = jsonizeResponse as unknown as ExtractedData;
+        setExtractedData(extractedFromApi);
+        
+        const step1Time = performance.now();
+        const step1Latency = Math.round(step1Time - startTime);
+        addLog("response", { step: 1, endpoint: "/jsonize", data: jsonizeResponse }, step1Latency);
+        
+        // Update token usage after step 1
+        const outputTokens = estimateTokens(JSON.stringify(extractedFromApi));
+        setTokenUsage({
+          input: inputTokens,
+          output: outputTokens,
+          total: inputTokens + outputTokens,
+        });
+        
         // Step 2: /analyze - Analyze structured JSON for SUT compliance
-        const { jsonizeResponse, analysisResponse } = await processReport(inputText);
+        addLog("request", { step: 2, endpoint: "/analyze" });
+        const analysisResponse = await analyzeHealthReport(jsonizeResponse);
         setApiResponse(analysisResponse);
         
-        // Use the extracted data from jsonize response
-        // jsonizeResponse IS the HealthReportRequest directly (no .data wrapper)
-        const extractedFromApi = jsonizeResponse as unknown as ExtractedData;
-        
-        // Parse the SUT evaluation from analyze response
+        // Parse and show SUT evaluation
         const sutEval = parseApiResponse(analysisResponse);
+        setSutEvaluation(sutEval);
         
-        result = {
-          extractedData: extractedFromApi,
-          sutEvaluation: sutEval,
-        };
+        const endTime = performance.now();
+        const totalLatency = Math.round(endTime - startTime);
+        setLatency(totalLatency);
+        
+        addLog("response", { step: 2, endpoint: "/analyze", data: analysisResponse }, Math.round(endTime - step1Time));
+
+        // Initialize feedback state
+        const initialFeedback: FeedbackState = {};
+        sutEval.medications.forEach((med) => {
+          initialFeedback[med.id] = { isCorrect: null, comment: "" };
+        });
+        setFeedback(initialFeedback);
       }
-      
-      const endTime = performance.now();
-      const totalLatency = Math.round(endTime - startTime);
-
-      const outputTokens = estimateTokens(JSON.stringify(result.extractedData));
-
-      setExtractedData(result.extractedData);
-      setSutEvaluation(result.sutEvaluation);
-      setLatency(totalLatency);
-      setTokenUsage({
-        input: inputTokens,
-        output: outputTokens,
-        total: inputTokens + outputTokens,
-      });
-
-      // Initialize feedback state for all medications
-      const initialFeedback: FeedbackState = {};
-      result.sutEvaluation.medications.forEach((med) => {
-        initialFeedback[med.id] = { isCorrect: null, comment: "" };
-      });
-      setFeedback(initialFeedback);
-
-      // Log response
-      addLog("response", result, totalLatency);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);

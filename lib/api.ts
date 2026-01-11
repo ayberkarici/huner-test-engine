@@ -111,10 +111,20 @@ export interface JsonizeRequest {
 export type JsonizeResponse = HealthReportRequest;
 
 // Analyze endpoint types  
+export interface MedicationAnalysis {
+  sgkCode: string;
+  sonuc: "Uygun" | "Uygun Değil" | "Bulunamadı";
+  degerlendirme: string;
+}
+
+export interface AnalysisData {
+  medications: MedicationAnalysis[];
+}
+
 export interface AnalysisResponse {
   request_id: string;
   message: string;
-  data: string; // JSON string containing SUT evaluation
+  data: AnalysisData;
 }
 
 export interface ValidationError {
