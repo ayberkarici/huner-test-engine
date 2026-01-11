@@ -1,12 +1,18 @@
 // API Configuration for Hüner AI SUT Engine
 // API Documentation: https://sut-engine.hunerai.com/docs
+// 
+// External API endpoints (no /api prefix):
+//   - https://sut-engine.hunerai.com/jsonize
+//   - https://sut-engine.hunerai.com/analyze
+//
+// Local proxy handles CORS by forwarding requests server-side
 
 export const API_CONFIG = {
-  // Direct API URL - endpoints are /jsonize and /analyze (no /api prefix)
-  baseUrl: "https://sut-engine.hunerai.com",
+  // Local proxy URLs (handles CORS)
+  baseUrl: "/api",
   endpoints: {
-    jsonize: "/jsonize",  // Convert plain text to structured JSON
-    analyze: "/analyze",  // Analyze structured JSON for SUT compliance
+    jsonize: "/jsonize",  // Proxy → https://sut-engine.hunerai.com/jsonize
+    analyze: "/analyze",  // Proxy → https://sut-engine.hunerai.com/analyze
     health: "/health",
   },
 };
